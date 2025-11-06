@@ -4,6 +4,9 @@ I use them as launchers on my KDE/Linux machines.
 I bind Schmerp to `A-C-M-space`, and have a few Schmoop launchers,
 e.g. `A-C-M-l` is a page of shortcuts 
 
+Schmerp is basically the first thing I wrote with Tkinter, playing around.
+I came up with this, and it worked. Schmoop was largely written by ChatGPT.
+
 ## A-C-M-S-convention
 For writing key combos, I use e.g. `A-x` for "Alt+X", `C-M-p` for "Control+Meta+P" and so on.
 Some keys are named like `minus`. The key name is all lowercase, so as to make distinguishing
