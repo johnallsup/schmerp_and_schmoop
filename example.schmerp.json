@@ -1,0 +1,20 @@
+{
+  // comments in lines on their own are stripped before passing to json.loads
+
+  // web shortcuts
+  "ptr": ["o","https://puretrance.com/radio/"],
+  "wo": ["o","https://www.nytimes.com/games/wordle/index.html"],
+  "ne": ["o","https://nerdlegame.com/"],
+  "qu": ["o","https://www.merriam-webster.com/games/quordle/#/"],
+      
+  "mo": ["o","https://www.metoffice.gov.uk/weather/forecast/gcj2x8gt4"],
+  "str": ["o","https://www.strava.com/dashboard"],
+  "i": ["o","https://www.bbc.co.uk/iplayer"],
+  "pb": ["o","https://play.google.com/books"],
+  "and": ["o", "https://www.youtube.com/@andthatsmytune"],
+  "ff": ["firefox"],
+  "brave": ["brave-browse"],
+
+  // end
+  "END": "xlogo"
+}

@@ -1,0 +1,24 @@
+g gimp
+i inkscape
+s scribus
+k krita
+
+t konsole
+S-t alacritty
+C-t qterminal
+A-t foot
+
+n kate
+S-n alacritty -e vim
+C-n foot vim
+
+m musescore
+S-r rack
+r reaper
+C-r renoise
+f furnace
+
+w libreoffice --writer
+c libreoffice --calc
+
+b brave-browser
