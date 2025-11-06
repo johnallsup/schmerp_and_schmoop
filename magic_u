@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+# command selection
+what=u
+What=Web
+export SCHMERP_NOTES="~/.web_aliases" NOTES_HEIGHT=30 COMPLETION=0 CMDDIR="$HOME/.magic_${what}.d" LABEL="$What" CMDS="$HOME/.magic_${what}.json" 
+export GREP_NOTES=y
+unset SCHMERP_PREFIX
+
+# style
+export BG="#FF7" FG="#000" IBG="#FF0" IFG="#000" 
+
+schmerp_alias.py

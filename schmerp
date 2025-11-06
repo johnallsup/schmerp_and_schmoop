@@ -1,2 +1,4 @@
 #!/usr/bin/env bash
+# Simple example driver.
+export PATH="$HOME/.schmerp_commands:$PATH" # for delegating to more complex scripts
 BG="#070" FG="#FFF" IBG="#FFF" IFG="#000" schmerp.py
