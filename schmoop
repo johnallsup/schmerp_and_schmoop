@@ -1,0 +1,247 @@
+#!/usr/bin/env python
+import sys
+import os
+dotpython = os.path.expanduser("~/.python")
+if os.path.isdir(dotpython):
+  if not dotpython in sys.path:
+    sys.path.insert(0,dotpython)
+from icecream import ic; ic.configureOutput(includeContext=True)
+
+from jda1 import *
+import re
+import os
+import tkinter as tk
+import tkinter.font as tkfont
+import atexit
+import subprocess
+import shlex
+import simple_dialogs
+from tabulate import tabulate
+
+stdin = None
+txts = []
+args = sys.argv[1:]
+errormode = False
+passthru = False
+if len(args) == 0:
+  args = ["test.schmoop"]
+
+def edit_file(path):
+  terminal = "konsole"
+  cmdss = [terminal,"-e","vim",path]
+  print("Running",cmdss)
+  p = subprocess.Popen(cmdss, start_new_session=True)
+
+kmap = {}
+d = {}
+opts = {
+  "autoexit": True,
+}
+schmoop_name = None
+schmoop_path = None
+schmoop_ext = ".schmoop"
+mappings = []
+for arg in args:
+  if arg == "-x":
+    opts["autoexit"] = False
+    continue
+  if not arg.endswith(schmoop_ext):
+    arg += schmoop_ext
+  path = os.path.expanduser(f"~/.schmoop/{arg}")
+  try:
+    lines = rlf(path)
+  except FileNotFoundError:
+    print("No file",path)
+    if "DISPLAY" in os.environ or "WAYLAND_DISPLAY" in os.environ:
+      result = simple_dialogs.user_query(f"Do you want to create {path}","Yes","No")
+      if result == 0:
+        edit_file(path)  
+        exit()
+    continue
+  if schmoop_name is None:
+    schmoop_name = arg[:-len(schmoop_ext)]
+  if not schmoop_path:
+    schmoop_path = path
+  for line in lines:
+    if line.startswith("!"):
+      line = line[1:].strip()
+      line = line.split("#")[0].strip()
+      if "=" in line:
+        k, v = (x.strip() for x in line.split("=",1))
+        if v.lower() == "true":
+          v = True
+        if v.lower() == "false":
+          v = False
+        if v.isnumeric():
+          v = int(v)
+        opts[k] = v
+      else:
+        if line.startswith("no"):
+          line = line[2:]
+          opts[line] = False
+        else:
+          opts[line] = True
+      continue
+    if " " in line:
+      left, right = ( x.strip() for x in line.split(" ",1) )
+      d[left] = right
+      mappings.append([left,right])
+      txts.append(f"{left}: {right}")
+
+if len(d) == 0:
+  subprocess.run(["tkmsg","No schoop"])
+  exit(1)
+
+txt = "\n".join(txts)
+if passthru:
+  atexit.register(print,txt)
+
+def tk_event_to_keystring(event):
+    """
+    Convert a Tkinter key event into a string like A-C-M-S-x,
+    where A=Alt, C=Ctrl, M=Meta, S=Shift, x=key.
+    """
+    # State bitmasks depend on platform, but these are typical
+    ALT_MASK   = 0x0008
+    CTRL_MASK  = 0x0004
+    SHIFT_MASK = 0x0001
+    META_MASK  = 0x0080  # Often Command key on macOS or “Meta” on X11
+
+    parts = []
+
+    # Check modifiers
+    if event.state & ALT_MASK:
+        parts.append("A")
+    if event.state & CTRL_MASK:
+        parts.append("C")
+    if event.state & META_MASK:
+        parts.append("M")
+    if event.state & SHIFT_MASK:
+        parts.append("S")
+
+    # Append the key symbol
+    key = event.keysym.lower()
+    parts.append(key)
+
+    return "-".join(parts)
+
+def update_title():
+  t = f"Schmoop: {schmoop_name}"
+  if opts["autoexit"]:
+    t += " (autoexit)"
+  root.title(t) 
+
+def key_handler(event):
+  global autoexit
+  keystring = tk_event_to_keystring(event)
+  print(keystring)
+
+  if keystring == "q" and not "q" in d:
+    exit()
+  if keystring == "S-e" and not "S-e" in d:
+    try:
+      edit_file(schmoop_path)
+      exit()
+    except FileNotFoundError as e:
+      subprocess.run(["tkmsg",f"Terminal '{terminal}' not found"])
+      return
+    
+  if keystring == "escape":
+    exit()
+  if keystring == "C-x":
+    print("toggle autoexit")
+    opts["autoexit"] = not opts["autoexit"]
+    update_title()
+  if keystring == "C-s":
+    toggle_sort()
+    update_content() 
+    return
+
+  if keystring in d:
+    cmdstring = d[keystring]
+    cmds = shlex.split(cmdstring) 
+    cmdss = []
+    topts = dict(opts)
+    for e in cmds:
+      if e == "!noautoexit":
+        topts["autoexit"] = False
+        continue
+      elif e == "!autoexit":
+        topts["autoexit"] = True
+        continue
+      if e.startswith("#"):
+        break
+      cmdss.append(e)
+    print(keystring,cmdss)
+    try:
+      p = subprocess.Popen(cmdss, start_new_session=True)
+    except FileNotFoundError as e:
+      subprocess.run(["tkmsg",f"FileNotFound: {cmdss[0]} -- {repr(e)}"])
+      return
+    if topts["autoexit"]:
+      exit()
+  else:
+    print("Unrecognised",keystring)
+
+sort_content = False
+def toggle_sort():
+  global sort_content
+  #print("toggle_sort")
+  sort_content = not sort_content
+
+def update_content():
+  #print("Update content",sort_content)
+  ms = mappings
+  if sort_content:
+    ms = sorted(mappings, key = lambda t: t[1])
+  hs = [ "Combo", "Action" ]
+  tb = tabulate(ms,headers=hs,colalign=("right", "left"))
+  if False:
+    #print("sorted")
+    lines = t.splitlines()
+    lines = [ x for x in lines if ( x.strip() != "" or " " not in x ) ]
+    lines = sorted(lines, key = lambda t: t.split(" ",1)[1])
+    t = "\n".join(lines)
+  #print(t)
+  T.configure(state=tk.NORMAL)
+  T.delete("1.0", tk.END)
+  T.insert(tk.END, tb)
+  T.configure(state=tk.DISABLED)
+  
+root = tk.Tk()
+update_title()
+root.bind("<Key>", key_handler)
+
+# get screen size
+screen_width = root.winfo_screenwidth()
+screen_height = root.winfo_screenheight()
+win_width = int(screen_width * 0.7)
+win_height = int(screen_height * 0.7)
+win_xoffs = int((screen_width-win_width)/2)
+win_yoffs = int((screen_height-win_height)/2)
+geom = f"{win_width}x{win_height}+{win_xoffs}+{win_yoffs}"
+
+desired_font = tkfont.Font(family="Hack Nerd Font Mono", size=14)
+
+bg = "#002"
+fg = "#ffc"
+if errormode:
+  bg = "#a00"
+  fg = "white"
+bg=os.getenv("BG",bg)
+fg=os.getenv("FG",fg)
+
+root.geometry(geom)
+S = tk.Scrollbar(root)
+T = tk.Text(root, height=4, width=50)
+T.configure(font = desired_font,bg=bg,fg=fg)
+S.pack(side=tk.RIGHT, fill=tk.Y)
+T.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+S.config(command=T.yview)
+T.config(yscrollcommand=S.set)
+T.insert(tk.END, txt)
+T.configure(state=tk.DISABLED)
+update_content()
+tk.mainloop()
+if passthru:
+  print(txt,end="")
